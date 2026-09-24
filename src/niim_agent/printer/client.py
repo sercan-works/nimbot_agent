@@ -236,11 +236,15 @@ class PrinterClient:
         await self.write_no_notify(RequestCode.HEARTBEAT, b"\x01")
 
     async def _send_rows(self, image: Image.Image) -> None:
+        # Satırlar ATT onayı beklenmeden yazılır. Yanıtlı yazmada her satır bir
+        # bağlantı aralığı bekliyor: 320 satır ~19 sn → yanıtsız ~3.6 sn. D110_M'de
+        # donanımda doğrulandı (2026-09-25). 10 ms bekleme yazıcıyı zorlamamak için;
+        # beklemesiz gönderim doğrulanmadı (macOS kuyruğu dolunca paket atabilir).
         packets = list(encode_image(image))
         logger.debug("Görsel gönderiliyor: %d×%d px, %d satır", image.width, image.height,
                      len(packets))
         for packet in packets:
-            await self.transport.write(packet.to_bytes())
+            await self.transport.write_without_response(packet.to_bytes())
             await asyncio.sleep(ROW_DELAY)
 
     async def _wait_printed(self, done: Callable[[int], bool]) -> None:

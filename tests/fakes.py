@@ -29,7 +29,8 @@ class FakeTransport:
     def __init__(self, replies: dict[int, Reply | list[Reply]] | None = None):
         self.replies = {code: list(r) if isinstance(r, list) else r
                         for code, r in (replies or {}).items()}
-        self.sent: list[tuple[str, bytes]] = []  # ("request" | "write", ham bayt)
+        # ("request" | "write" | "write_nr", ham bayt); write_nr = yanıtsız yazma
+        self.sent: list[tuple[str, bytes]] = []
         self.is_connected = True
 
     @property
@@ -44,7 +45,7 @@ class FakeTransport:
         out: list[tuple[str, int]] = []
         for kind, packet in self.packets:
             if packet.type == RequestCode.IMAGE_ROW:
-                assert kind == "write", "görsel satırları cevapsız gönderilmeli"
+                assert kind == "write_nr", "görsel satırları yanıtsız gönderilmeli"
                 if out and out[-1][0] == "rows":
                     out[-1] = ("rows", out[-1][1] + 1)
                 else:
@@ -63,6 +64,9 @@ class FakeTransport:
 
     async def write(self, data: bytes) -> None:
         self.sent.append(("write", data))
+
+    async def write_without_response(self, data: bytes) -> None:
+        self.sent.append(("write_nr", data))
 
     def _next_reply(self, code: int) -> Reply:
         reply = self.replies.get(code, b"\x01")

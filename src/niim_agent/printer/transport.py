@@ -45,6 +45,10 @@ class Transport(Protocol):
         """Paketi yazar, cevap beklemez."""
         ...
 
+    async def write_without_response(self, data: bytes) -> None:
+        """Paketi ATT onayı beklemeden yazar (görsel satırları)."""
+        ...
+
 
 def find_characteristic(services) -> BleakGATTCharacteristic | None:
     """Tam olarak bir karakteristiği olan ve o karakteristiği read,
@@ -120,6 +124,12 @@ class BleakTransport:
     async def write(self, data: bytes) -> None:
         try:
             await self._write(data)
+        except (BleakError, OSError) as e:
+            raise PrinterConnectionError(f"Bluetooth hatası: {e}") from e
+
+    async def write_without_response(self, data: bytes) -> None:
+        try:
+            await self._client.write_gatt_char(self._char, data, response=False)
         except (BleakError, OSError) as e:
             raise PrinterConnectionError(f"Bluetooth hatası: {e}") from e
 

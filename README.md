@@ -69,7 +69,7 @@ etiketleri BLE ile Niimbot yazıcıya basan tek bir program.
    parametresi alır. Tasarım değişince agent güncellenmez; tüm istasyonlar aynı
    çıktıyı verir.
 3. **Yazıcı boşken iş iste, her seferinde 1 iş.** Bir etiketin BLE ile
-   gönderilip basılması ~25–30 sn sürüyor (§5.12). Sunucu, alınıp 180 sn içinde
+   gönderilip basılması ~8 sn sürüyor (§5.12). Sunucu, alınıp 180 sn içinde
    sonucu bildirilmeyen işi kuyruğa geri koyuyor. 5 iş birden alınırsa sonuncusu
    bu sınıra yaklaşır. O sırada aynı kaynağa başka bir claim gelirse (başka bir
    agent, ya da çok kaynaklı agent'ın kendisi) sunucu işi başkasına verir ve
@@ -320,8 +320,13 @@ eklenir: `03 55 55 C1 01 01 C1 AA AA`. Cevap paketleri normal çerçevededir.
 - **Komut–cevap:** `start_notify` → paketi yaz → ilk bildirimi bekle (10 sn) →
   `stop_notify` → cevabı çöz. NiimPrintX böyle yapıyor ve donanımda çalışıyor;
   M1'de aynen koruyun. Bildirimi bağlantı başına bir kez açmak sonraya bırakılabilecek bir iyileştirme.
-- **Cevapsız yazma** (`write_no_notify`): Paketi yaz, bildirim bekleme. Görsel
-  satırları ve yem paketler (§5.8) böyle gönderilir.
+- **Cevapsız yazma** (`write_no_notify`): Paketi yaz, bildirim bekleme. Yem
+  paketler (§5.8) böyle, **yanıtlı** ATT yazmasıyla gönderilir.
+- **Görsel satırları** ATT onayı beklenmeden (write-without-response) ve aralarında
+  10 ms beklemeyle yazılır. Yanıtlı yazmada her satır bir bağlantı aralığı bekliyor
+  (320 satır ~19 sn); yanıtsız ~3.6 sn. D110_M'de donanımda doğrulandı
+  (2026-09-25). Beklemesiz gönderim doğrulanmadı: macOS kuyruğu dolunca paket
+  atabilir.
 - **Zaman aşımı:** NiimPrintX zaman aşımında `None` döndürüyor ve çağıranı
   `NoneType` hatasıyla çökertiyor. Yeni kodda `send_command` zaman aşımında
   `PrinterTimeout` fırlatır. `None`'a dayanıklı olması gereken yerler (sürüm
@@ -518,9 +523,12 @@ Cevap yoksa ya da 4 bayttan kısaysa o tur `None` sayılır ve beklemeye devam e
 |---|---|
 | Yazıcıyı bulma | < 1 sn (ilk sefer); aynı oturumda yeniden bağlanırken tarama yok |
 | Bağlanma | ~1 sn |
-| Görsel gönderme + baskı | ~25–30 sn |
+| Hazırlık (sürüm tespiti, baskı öncesi komutlar) | ~1.3 sn |
+| Görsel gönderme (320 satır, yanıtsız + 10 ms) | ~3.6–3.8 sn |
+| Baskı (END_PAGE_PRINT → sayfa bitti) | ~2.5 sn |
 
-Süreyi satır başına bir BLE yazması ve 10 ms bekleme belirliyor. Kopyalar
+Bağlandıktan sonra etiket başına ~8 sn (niim-agent ve Chrome Web Bluetooth'ta
+aynı). Satırlar yanıtlı yazıldığında gönderme ~19 sn sürüyordu (§5.2). Kopyalar
 (`copies`) görseli yeniden göndermez; 5 kopya, 1 kopyadan belirgin şekilde uzun sürmez.
 
 ---
@@ -1011,7 +1019,7 @@ Bir `aiohttp` test sunucusu §4'ü bellekte bir kuyrukla uygular. Senaryolar:
 | macOS izinleri | Paketsizken launchd altında Bluetooth izni sorunlu. Ad-hoc imzada güncellemeden sonra izin yeniden isteniyor. Developer ID imzası ücretli |
 | Windows'ta otomatik başlatma | HKCU Run seçildi (yetki gerektirmiyor); çökmeden sonra yeniden başlatma iç gözetmende. Yetersiz kalırsa Görev Zamanlayıcı |
 | v1 protokol yolu | Eski firmware'li bir yazıcıyla hiç doğrulanmadı |
-| Baskı hızı | Etiket başına ~25–30 sn; BLE'nin doğası. Toplu işlerde beklenti buna göre kurulmalı |
+| Baskı hızı | Etiket başına ~8 sn (satırlar yanıtsız yazılınca; §5.12). Toplu işlerde beklenti buna göre kurulmalı |
 | Oturum şartı | Agent, oturum açılmadan çalışmıyor. Gerekirse otomatik oturum açma, ya da Linux çalışan bir Raspberry Pi (systemd). İkisi de kapsam dışı |
 
 ---
