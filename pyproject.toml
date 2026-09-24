@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "niim-agent"
+dynamic = ["version"]
+description = "Buluttan etiket işi çekip Bluetooth ile Niimbot yazıcıya basan arka plan agent'ı"
+readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = [
+    "bleak>=1.0,<4",
+    "Pillow>=10.1",
+    "platformdirs>=4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "ruff",
+]
+
+[project.scripts]
+niim-agent = "niim_agent.cli:main"
+
+[tool.hatch.version]
+path = "src/niim_agent/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/niim_agent"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
